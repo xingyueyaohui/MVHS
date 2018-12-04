@@ -35,7 +35,7 @@ This is the format of the key points
 """
 
 """
-Visualize the 2D key points of the images
+Visualize the 2D key points of the images in alphapose format
 """
 def visualize_key_points(pose_path, img_dir, out_dir):
     fileObj = open(pose_path, 'r')
@@ -66,6 +66,7 @@ def visualize_key_points(pose_path, img_dir, out_dir):
 
 """
 Draw the skeletons of a 2D image according to its joints in 3D
+Migrate from hmr
 """
 def draw_skeleton(input_image, joints, draw_edges=True, vis=None, radius=None):
     """
@@ -230,6 +231,7 @@ def draw_skeleton(input_image, joints, draw_edges=True, vis=None, radius=None):
     return image
 
 """
+Migrate from hmr
 Get original joints and other things
 Directly copied from hmr
 Here is an example:
