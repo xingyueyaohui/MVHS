@@ -24,7 +24,7 @@ def vis_joints(info, src_dir, dst_dir):
 
     [n_joints, _] = joints.shape
 
-    for j in range(17):
+    for j in range(n_joints):
         x = int(joints[j][0])
         y = int(joints[j][1])
         cv2.circle(img, (x, y), 2, (255, 255, 255))
