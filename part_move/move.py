@@ -31,7 +31,7 @@ import json
     {16, "RAnkle"},
 """
 limbs = np.array([[1, 2, 3, 4], [5, 7], [6, 8], [7, 9], [8, 10], [11, 13],
-                 [12, 14], [13, 15], [14, 16], [5, 6, 7, 8]])
+                 [12, 14], [13, 15], [14, 16], [5, 6, 11, 12]])
 limb_name = ['head', 'upper-left-arm', 'upper-right-arm', 'down-left-arm',
              'down-right-arm', 'upper-left-leg', 'upper-right-leg',
              'down-left-leg', 'down-right-leg', 'torso']
@@ -51,6 +51,8 @@ def warp_img_pair(info0, info1, src_dir, dst_dir):
     img_path1 = os.path.join(src_dir, img_name1)
     dst_path = dst_dir + 's' + img_name1
 
+    # print("From {id0} to {id1}".format(id0=img_name0, id1=img_name1))
+
     # each joint has two value, 0 for width and 1 for height
     joints0 = np.array(info0['joints'])
     joints1 = np.array(info1['joints'])
@@ -68,12 +70,15 @@ def warp_img_pair(info0, info1, src_dir, dst_dir):
 
     img = np.zeros((height, width, 3))
 
-    for i in range(n_limbs):
+    for i in range(1, n_limbs):
+
         rot = rot_matrix[:, :, i]
         mask = src_limb_masks[:, :, i]
         img_warped = cv2.warpAffine(img0, rot, (width, height))
+        src_mask = cv2.warpAffine(src_limb_masks[:, :, i], rot, (width, height))
         for c in range(3):
             img[:, :, c] = img[:, :, c] * (1 - tgt_limb_masks[:, :, i]) + img_warped[:, :, c] * tgt_limb_masks[:, :, i]
+            #img[:, :, c] = img[:, :, c] * (1 - src_mask) + img_warped[:, :, c] * src_mask
 
     cv2.imwrite(dst_path, img)
 
@@ -149,8 +154,12 @@ def morphing(origin_pose, target_pose, origin_img, target_img, limbs):
         origin_size[1] *= scale_factor
         origin_pose_a *= scale_factor
         origin_pose_b *= scale_factor
-        origin_body_part = cv2.resize(origin_body_part, (int(origin_size[0]), int(origin_size[1])),
+
+        try:
+            origin_body_part = cv2.resize(origin_body_part, (int(origin_size[0]), int(origin_size[1])),
                                       interpolation=cv2.INTER_CUBIC)
+        except cv2.error:
+            continue
 
         # translate to the center
         origin_pose_center = (origin_pose_a + origin_pose_b) / 2
@@ -224,6 +233,8 @@ def warp_combine(info0, info1, src_dir, dst_dir):
     img_path1 = os.path.join(src_dir, img_name1)
     dst_path = dst_dir + 'sc' + img_name1
 
+    print("from image {id1} to {id2}".format(id1 = img_name0, id2 = img_name1))
+
     # each joint has two value, 0 for width and 1 for height
     joints0 = np.array(info0['joints'])
     joints1 = np.array(info1['joints'])
@@ -247,6 +258,8 @@ def warp_combine(info0, info1, src_dir, dst_dir):
     # Then the part with more than 2 key points like torso
     for i in range(n_limbs):
         limb = limbs[i]
+        if i == 0:
+            continue
         if len(limb) == 4:
             rot = rot_matrix[:, :, i]
             mask = src_limb_masks[:, :, i]
@@ -255,17 +268,3 @@ def warp_combine(info0, info1, src_dir, dst_dir):
                 img[:, :, c] = img[:, :, c] * (1 - tgt_limb_masks[:, :, i]) + img_warped[:, :, c] * tgt_limb_masks[:, :, i]
 
     cv2.imwrite(dst_path, img)
-
-
-if __name__ == '__main__':
-    """
-    Example generation
-    """
-    test_pairs = [[1, 2], [72, 73]] # test two pairs as an example
-    file = open('pose.json', 'r')
-    people = json.load(file)
-    for pair in test_pairs:
-        person0 = people[pair[0]]
-        person1 = people[pair[1]]
-        warp_combine(person0, person1, '../data/gt_bbox/', 'vis_data/',)
-        warp_combine(person1, person0, '../data/gt_bbox/', 'vis_data/',)
