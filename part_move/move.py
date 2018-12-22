@@ -103,7 +103,7 @@ def get_limb_transformations(limbs, joints0, joints1):
             p0[j, :] = [joints0[limbs[i][j], 0], joints0[limbs[i][j], 1]]
             p1[j, :] = [joints1[limbs[i][j], 0], joints1[limbs[i][j], 1]]
 
-        tform = transformations.make_similarity(p1, p0)
+        tform = transformations.make_similarity(p0, p1)
         Ms[:, :, i] = np.array([[tform[1], -tform[3], tform[0]], [tform[3], tform[1], tform[2]]])
 
     return Ms
