@@ -100,3 +100,48 @@ def get_limb_transformations(limbs, index0, index1, joints0, joints1):
     Ms = np.array([[tform[1], -tform[3], tform[0]], [tform[3], tform[1], tform[2]]])
 
     return Ms
+
+
+def warp_img_pair(limbs, info0, info1, src_dir):
+    """
+    Wrapper for simple part moving, from info0 to info1
+    Use the easiest method as an example, contrast to warp_combine below
+    info contains img name and joints
+    :param info0: src person
+    :param info1: tgt person
+    """
+    n_limbs = len(limbs)
+    img_name0 = info0['id']
+    img_name1 = info1['id']
+    img_path0 = os.path.join(src_dir, img_name0)
+    img_path1 = os.path.join(src_dir, img_name1)
+
+    # print("From {id0} to {id1}".format(id0=img_name0, id1=img_name1))
+
+    # each joint has two value, 0 for width and 1 for height
+    joints0 = np.array(info0['joints'])
+    joints1 = np.array(info1['joints'])
+
+    img0 = cv2.imread(img_path0)
+    img1 = cv2.imread(img_path1)
+
+    [height, width, _] = img0.shape
+
+    rot_matrix = np.zeros((2, 3, n_limbs))
+
+    src_limb_masks = make_limb_masks(limbs, joints0, width, height)
+    tgt_limb_masks = make_limb_masks(limbs, joints1, width, height)
+    rot_matrix = get_limb_transformations(limbs, joints0, joints1)
+
+    img = np.zeros((height, width, 3))
+
+    for i in range(1, n_limbs):
+
+        rot = rot_matrix[:, :, i]
+        mask = src_limb_masks[:, :, i]
+        img_warped = cv2.warpAffine(img0, rot, (width, height))
+        src_mask = cv2.warpAffine(src_limb_masks[:, :, i], rot, (width, height))
+        for c in range(3):
+            img[:, :, c] = img[:, :, c] * (1 - tgt_limb_masks[:, :, i]) + img_warped[:, :, c] * tgt_limb_masks[:, :, i]
+
+    return img
