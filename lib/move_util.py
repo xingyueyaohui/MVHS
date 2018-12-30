@@ -3,6 +3,8 @@ Tools for part moving
 """
 import numpy as np
 import lib.transformations as transformations
+import cv2
+import os
 
 
 def make_limb_masks(limbs, joints, img_width, img_height):
@@ -11,6 +13,7 @@ def make_limb_masks(limbs, joints, img_width, img_height):
     """
     n_limbs = len(limbs)
     mask = np.zeros((img_height, img_width, n_limbs))
+    joints = np.array(joints)
 
     # Gaussian sigma perpendicular to the limb axis.
     sigma_perp = np.array([5, 5, 5, 5, 5, 5, 5, 5, 5, 15]) ** 2
@@ -77,6 +80,7 @@ def get_person_transformations(limbs, joints0, joints1):
 
     return Ms
 
+
 def get_limb_transformations(limbs, index0, index1, joints0, joints1):
     """
     Calculate limb transformations for a seperate limb
@@ -102,7 +106,7 @@ def get_limb_transformations(limbs, index0, index1, joints0, joints1):
     return Ms
 
 
-def warp_img_pair(limbs, info0, info1, src_dir):
+def warp_img_pair(limbs, info0, info1, src_img):
     """
     Wrapper for simple part moving, from info0 to info1
     Use the easiest method as an example, contrast to warp_combine below
@@ -113,8 +117,6 @@ def warp_img_pair(limbs, info0, info1, src_dir):
     n_limbs = len(limbs)
     img_name0 = info0['id']
     img_name1 = info1['id']
-    img_path0 = os.path.join(src_dir, img_name0)
-    img_path1 = os.path.join(src_dir, img_name1)
 
     # print("From {id0} to {id1}".format(id0=img_name0, id1=img_name1))
 
@@ -122,8 +124,7 @@ def warp_img_pair(limbs, info0, info1, src_dir):
     joints0 = np.array(info0['joints'])
     joints1 = np.array(info1['joints'])
 
-    img0 = cv2.imread(img_path0)
-    img1 = cv2.imread(img_path1)
+    img0 = src_img
 
     [height, width, _] = img0.shape
 
@@ -135,7 +136,7 @@ def warp_img_pair(limbs, info0, info1, src_dir):
 
     img = np.zeros((height, width, 3))
 
-    for i in range(1, n_limbs):
+    for i in range(0, n_limbs):
 
         rot = rot_matrix[:, :, i]
         mask = src_limb_masks[:, :, i]
