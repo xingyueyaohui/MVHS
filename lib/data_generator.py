@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import pickle
 from lib.dataset import Dataset, Person
+import lib.move_util as move
 
 """
     (17 body parts)
@@ -107,7 +108,7 @@ def euclid_match_human(person, tgt, num = 5):
         spl_joint = normalize(spl_joint)
         delta_joint = spl_joint - tgt_joint
         delta = np.sum(np.square(delta_joint.reshape(2 * n_joints)))
-        mid.append({'id': i, 'delta': delta})
+        mid.append({'index':i, 'id': person.imgs[i], 'delta': delta})
 
     mid = sorted(mid, key = lambda x:x['delta'])
 
@@ -126,11 +127,30 @@ def make_match_json(json_path, dst_dir, num = 4):
     dataset.make_data(json_path)
     pickle.dump(dataset, open(dst_dir + 'dataset.pkl', 'wb'))
 
-    dic = []
+    dic = {}
     for person in dataset.people:
         for i in range(person.img_num):
             match = euclid_match_human(person, i, num)
-            dic.append({'id':person.imgs[i], 'match':match})
+            dic[person.imgs[i]] = match
 
     f = open(dst_dir + 'match.json', 'w')
     json.dump(dic, f)
+
+
+def make_mask(json_path, src_dir, dst_dir, limbs):
+    """
+    make the target mask for the convenience of training
+    """
+    f = open(json_path, 'r')
+    dic = json.load(f)
+
+    for person in dic:
+        img_name = person['id']
+        img_path = src_dir + img_name
+        img = cv2.imread(img_path)
+        [height, width, _] = img.shape
+        mask = move.make_limb_masks(limbs, person['joints'], width, height)
+
+        mask = np.sum(mask, axis = 2)
+        mask = np.where(mask > 0.5, 255.0, 0.0)
+        cv2.imwrite(dst_dir + img_name, mask)
