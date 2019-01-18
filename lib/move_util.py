@@ -132,7 +132,7 @@ def warp_img_pair(limbs, info0, info1, src_img):
 
     src_limb_masks = make_limb_masks(limbs, joints0, width, height)
     tgt_limb_masks = make_limb_masks(limbs, joints1, width, height)
-    rot_matrix = get_limb_transformations(limbs, joints0, joints1)
+    rot_matrix = get_person_transformations(limbs, joints0, joints1)
 
     img = np.zeros((height, width, 3))
 
