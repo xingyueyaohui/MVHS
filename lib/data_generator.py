@@ -39,6 +39,46 @@ limb_name = ['head', 'upper-left-arm', 'upper-right-arm', 'down-left-arm',
              'down-right-arm', 'upper-left-leg', 'upper-right-leg',
              'down-left-leg', 'down-right-leg', 'torso']
 
+
+key_point_num = {'alpha':17}
+
+
+def sort_json(json_path, dst_path, mode = 'alpha'):
+    """
+    Convert json into more handy format
+    Delete repeated detection
+    Sort according to image names
+    :param json_path: src path
+    :param dst_path: dst path
+    :param mode: default alpha-pose
+    """
+    f = open(json_path, 'r')
+    dic = json.load(f)
+    f.close()
+    res = []
+    dic = sorted(dic, key=lambda x:x['image_id'])
+    num = len(dic)
+    joints_num = key_point_num['alpha']
+    prev_img = None
+    if mode == 'alpha':
+        for i in range(num):
+            joints = np.zeros((joints_num, 2))
+            for j in range(joints_num):
+                # x -- 0, y -- 1
+                joints[j, 0] = dic[i]['keypoints'][3 * j + 0]
+                joints[j, 1] = dic[i]['keypoints'][3 * j + 1]
+
+            if dic[i]['image_id'] != prev_img:
+                r = {'id': dic[i]['image_id'], 'joints': joints.tolist()}
+                res.append(r)
+                prev_img = dic[i]['image_id']
+        res = sorted(res, key=lambda x: x['id'])
+
+        f = open(dst_path, 'w')
+        json.dump(res, f)
+        f.close()
+
+
 def draw_joint_heatmap(json_path, src_dir, dst_dir):
     """
     generating pose map
@@ -137,7 +177,7 @@ def make_match_json(json_path, dst_dir, num = 4):
     json.dump(dic, f)
 
 
-def make_mask(json_path, src_dir, dst_dir, limbs):
+def make_mask(json_path, src_dir, dst_dir, limbs=limbs):
     """
     make the target mask for the convenience of training
     """
@@ -154,3 +194,7 @@ def make_mask(json_path, src_dir, dst_dir, limbs):
         mask = np.sum(mask, axis = 2)
         mask = np.where(mask > 0.5, 255.0, 0.0)
         cv2.imwrite(dst_dir + img_name, mask)
+
+
+if __name__ == '__main__':
+    make_match_json('/home/dongkai/pzq/data/pose/market-pose.json', '/home/dongkai/pzq/data/pose/')
