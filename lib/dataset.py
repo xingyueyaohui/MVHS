@@ -46,7 +46,7 @@ class Dataset(object):
         prev_loc = -1
 
         for i, person in enumerate(dic):
-            person_id = int(person['id'][:3])
+            person_id = int(person['id'][:4])
             if person_id == prev_id:
                 self.people[prev_loc].img_num += 1
                 self.people[prev_loc].imgs.append(person['id'])
