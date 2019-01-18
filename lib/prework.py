@@ -44,7 +44,7 @@ def construct_mapping(json_path):
     return mapping
 
 
-def read_color(json_path, width, height, src_dir, session_num = None):
+def read_color(json_path, width, height, src_dir, start = 0, end=20000):
     """
     Read in colorful images like src
     :param json_path: pose json
@@ -54,22 +54,26 @@ def read_color(json_path, width, height, src_dir, session_num = None):
     f = open(json_path, 'r')
     dic = json.load(f)
     img_num = len(dic)
-    if session_num is not None:
-        img_num = 1000
+    if start is not 0:
+        img_num = end - start
+    else:
+        img_num = end
     result = np.zeros((img_num, 3, height, width))
     for i, obj in enumerate(dic):
+        if i < start:
+            continue
+        elif i >= end:
+            break
         img = cv2.imread(src_dir + obj['id'])
-        result[i, :, :, :] = np.transpose(img, (2, 0, 1))
+        result[i - start, :, :, :] = np.transpose(img, (2, 0, 1))
 
         if i % 1000 == 999 and i > 0:
             print('Color images {i}'.format(i=i))
-            if session_num is not None:
-                break
 
     return result
 
 
-def read_gray(json_path, width, height, src_dir, session_num = None):
+def read_gray(json_path, width, height, src_dir, start = 0, end = 20000):
     """
     Read in colorful images like src
     :param json_path: pose json
@@ -79,17 +83,22 @@ def read_gray(json_path, width, height, src_dir, session_num = None):
     f = open(json_path, 'r')
     dic = json.load(f)
     img_num = len(dic)
-    if session_num is not None:
-        img_num = 1000
+    if start is not 0:
+        img_num = end - start
+    else:
+        img_num = end
     result = np.zeros((img_num, height, width))
     for i, obj in enumerate(dic):
+        if i < start:
+            continue
+        elif i >= end:
+            break
+
         img = cv2.imread(src_dir + obj['id'], 0)
-        result[i, :, :] = img
+        result[i - start, :, :] = img
 
         if i % 1000 == 999 and i > 0:
             print('Gray images {i}'.format(i=i))
-            if session_num is not None:
-                break
 
     return result
 
@@ -116,18 +125,24 @@ def walk_through_transformations(src_dir, match_json_path, data_json_path, mappi
     for i, sample in enumerate(data):
         matcher = match[sample['id']]
         print(i)
+
+        if len(matcher) < num:
+            continue
         for j in range(num):
             src_name = matcher[j]['id']
             src_img = cv2.imread(src_dir + src_name)
-            joints0 = data[mapping[src_name]]['joints']
-            joints1 = sample['joints']
+            info0 = data[mapping[src_name]]
+            info1 = sample
 
-            dst_img = move.warp_img_pair(limbs, joints0, joints1, src_img)
+            dst_img = move.warp_img_pair(limbs, info0, info1, src_img)
             dst_path = dst_dir + sample['id'][:-4] + str(j) + '.jpg'
             cv2.imwrite(dst_path, dst_img)
 
+        if i % 500:
+            print(i)
 
-def read_morphed_img_and_group(src_dir, data_json_path, match_json_path, width, height, num = 2, session_num = None):
+
+def read_morphed_img_and_group(src_dir, data_json_path, match_json_path, width, height, start = 0, end = 20000, num = 2):
     """
     walk through the whole transformed images and read in
     """
@@ -139,20 +154,25 @@ def read_morphed_img_and_group(src_dir, data_json_path, match_json_path, width, 
     f.close()
 
     img_num = len(data)
-    if session_num is not None:
-        img_num = 1000
+    if start is not 0:
+        img_num = end - start
+    else:
+        img_num = end
     imgs = np.zeros((img_num, num, 3, height, width))
 
     for i, sample in enumerate(data):
+        if i < start:
+            continue
+        elif i >= end:
+            break
+
         matcher = match[sample['id']]
         for j in range(num):
             src_name = src_dir + sample['id'][:-4] + str(j) + '.jpg'
-            imgs[i, j, :, :, :] = np.transpose(cv2.imread(src_name), (2 ,0, 1))
+            imgs[i - start, j, :, :, :] = np.transpose(cv2.imread(src_name), (2 ,0, 1))
 
         if i % 1000 == 999 and i > 0:
             print('Read morph {i}'.format(i = i))
-            if session_num is not None:
-                break
 
     return imgs
 
